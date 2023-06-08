@@ -5,11 +5,11 @@ import store from "./store";
 import Element from "element-ui";
 import "element-ui/lib/theme-chalk/index.css";
 import "../src/assets/rest.css";
-import axios from "axios";
+import "./permission.js";
 
 Vue.config.productionTip = false;
 
-Vue.use(Element).use(axios);
+Vue.use(Element);
 new Vue({
   router,
   store,

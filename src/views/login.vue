@@ -1,36 +1,42 @@
 <template>
   <div class="login">
-    <el-form class="form" :model="loginForm">
+    <el-form
+      class="form"
+      :model="loginForm"
+      :rules="loginFormRules"
+      ref="loginForm"
+    >
       <h3 class="title">若依管理系统</h3>
-      <el-form-item>
+      <el-form-item prop="username">
         <el-input
           class="el-form-item"
           placeholder="账号"
-          prefix-icon="el-icon-search"
+          prefix-icon="el-icon-user"
           v-model="loginForm.username"
         >
         </el-input>
       </el-form-item>
-      <el-form-item>
+      <el-form-item prop="password">
         <el-input
+          type="password"
           class="el-form-item"
           placeholder="密码"
-          prefix-icon="el-icon-search"
+          prefix-icon="el-icon-lock"
           v-model="loginForm.password"
         >
         </el-input>
       </el-form-item>
-      <el-form-item>
+      <el-form-item prop="code">
         <el-input
           class="el-form-item"
           style="width: 63%"
           placeholder="验证码"
-          prefix-icon="el-icon-search"
+          prefix-icon="el-icon-loading"
           v-model="loginForm.code"
         >
         </el-input>
         <div class="login-code">
-          <img :src="codeUrl" class="login-code-imgs" />
+          <img :src="codeUrl" class="login-code-imgs" @click="getCode" />
         </div>
       </el-form-item>
       <el-checkbox
@@ -39,7 +45,12 @@
         >记住密码</el-checkbox
       >
       <el-form-item style="width: 100%">
-        <el-button type="primary" style="width: 100%">登录</el-button>
+        <el-button
+          type="primary"
+          style="width: 100%"
+          @click.native="handleLogin"
+          >登录</el-button
+        >
       </el-form-item>
     </el-form>
     <div class="footer">
@@ -49,20 +60,77 @@
 </template>
 
 <script>
+import { getCodeImgs, getInfo } from "@/api/login";
 export default {
   name: "login",
   data() {
     return {
       loginForm: {
-        username: "",
-        password: "",
+        username: "admin",
+        password: "admin123",
         code: "",
+        uuid: "",
         remenberMe: true,
       },
       codeUrl: "",
+      captchaEnabled: true,
+      redirect: undefined,
+      loginFormRules: {
+        username: [
+          { required: true, message: "请输入账号", trigger: "blur" },
+          {
+            min: 3,
+            max: 10,
+            message: "长度在 3 到 10 个字符",
+            trigger: "blur",
+          },
+        ],
+        password: [{ required: true, message: "请输入密码", trigger: "blur" }],
+        code: [{ required: true, message: "请输入验证码", trigger: "blur" }],
+      },
     };
   },
-  methods: {},
+  watch: {
+    $route: {
+      handler: function (route) {
+        this.redirect = route.query && route.query.redirect;
+      },
+      immediate: true,
+    },
+  },
+  methods: {
+    getCode() {
+      getCodeImgs().then((res) => {
+        this.captchaEnabled =
+          res.captchaEnabled === undefined ? true : res.captchaEnabled;
+        if (this.captchaEnabled) {
+          this.codeUrl = "data:image/png;base64," + res.img;
+          this.loginForm.uuid = res.uuid;
+        }
+        console.log(res);
+      });
+    },
+    handleLogin() {
+      this.$refs.loginForm.validate((valid) => {
+        if (valid) {
+          this.$store
+            .dispatch("Login", this.loginForm)
+            .then((res) => {
+              console.log(res);
+              this.$router.push({ path: this.redirect || "/" });
+            })
+            .catch((err) => {
+              if (this.captchaEnabled) {
+                this.getCode();
+              }
+            });
+        }
+      });
+    },
+  },
+  created() {
+    this.getCode();
+  },
 };
 </script>
 
@@ -92,6 +160,7 @@ export default {
     float: right;
     img {
       cursor: pointer;
+      height: 38px;
     }
   }
 }
